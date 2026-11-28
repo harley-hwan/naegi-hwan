@@ -12,6 +12,13 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || e.request.mode !== 'navigate') return;
-  e.respondWith(fetch(e.request).catch(() =>
+  // 인터넷이 될 때 받은 첫 화면으로 기억해 둔 안내를 새로 고친다 (문구가 바뀌어도 오프라인 안내가 옛 문구로 남지 않게).
+  e.respondWith(fetch(e.request).then(r => {
+    if (r.ok && new URL(e.request.url).pathname.replace(/index\.html$/, '') === new URL('./', self.registration.scope).pathname) {
+      const copy = r.clone();
+      caches.open(NOTICE).then(c => c.put('./', copy)).catch(() => {});
+    }
+    return r;
+  }).catch(() =>
     caches.open(NOTICE).then(c => c.match('./')).then(hit => hit || Response.error())));
 });
